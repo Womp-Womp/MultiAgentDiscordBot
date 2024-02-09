@@ -25,6 +25,9 @@ import glob
 from langchain_community.document_loaders.base import Document
 from langchain.vectorstores import Chroma
 from docx import Document as DocxDocument
+import discord
+from discord.ext import commands
+import asyncio
 #from rag_tool import rag_processing
 
 #from ask_uncensored import ask_mistral_model
@@ -450,6 +453,8 @@ async def process_command(interaction, query):
     await interaction.response.send_message(response, ephemeral=True)
     
 # This is the entry point for the slash command from Discord.
+# ...
+
 @bot.slash_command(description="Ask an uncensored question")
 async def ask_uncensored(interaction: discord.Interaction, query: str):
     # Defer the interaction to provide time for processing
@@ -458,10 +463,54 @@ async def ask_uncensored(interaction: discord.Interaction, query: str):
     # Run the command processing in the background
     asyncio.create_task(process_ask_uncensored_command(interaction, query))
 
+async def process_ask_uncensored_command(interaction, query):
+    """
+    Process the ask uncensored command by sending the query to the Mistral model and returning the response.
+
+    Args:
+        interaction (object): The interaction object representing the user's interaction with the bot.
+        query (str): The query to be sent to the Mistral model.
+
+    Returns:
+        None
+
+    Raises:
+        Exception: If an error occurs during the processing of the command.
+    """
+    try:
+        response_data = await ask_mistral_model(query)
+
+        if isinstance(response_data, list):
+            embed = discord.Embed(title="Uncensored Response", color=discord.Color.green())
+            for part in response_data:
+                if 'response' in part:
+                    embed.add_field(name="Response", value=part['response'], inline=False)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            await interaction.response.send_message("An error occurred while processing the command.", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message("An error occurred while processing the command.", ephemeral=True)
+        raise e
+
+# ...
+
 
 
 
 async def process_ask_uncensored_command(interaction, query):
+    """
+    Process the ask uncensored command by sending the query to the Mistral model and returning the response.
+
+    Args:
+        interaction (object): The interaction object representing the user's interaction with the bot.
+        query (str): The query to be sent to the Mistral model.
+
+    Returns:
+        None
+
+    Raises:
+        Exception: If an error occurs during the processing of the command.
+    """
     try:
         response_data = await ask_mistral_model(query)
 
@@ -645,6 +694,13 @@ async def add_balance(ctx, user_id: str, amount: float):
 #@bot.slash_command(description="Interact with the AI agent")
 @bot.slash_command(description="Interact with the AI agent")
 async def interact(interaction: discord.Interaction, query: str):
+    """
+    This function handles the interaction with the AI agent.
+    
+    Parameters:
+    - interaction: The Discord interaction object.
+    - query: The user's query.
+    """
     # Acknowledge the interaction immediately and defer the actual response
     await interaction.response.defer(ephemeral=True)
     print(f"Received query from {interaction.user}: {query}")
